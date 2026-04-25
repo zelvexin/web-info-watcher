@@ -52,8 +52,8 @@ def get_safe_filename(name: str) -> str:
     return safe_name[:50]
 
 def get_formatted_time() -> str:
-    """Return formatted datetime string for diff filenames: YYYY-MM-DD_HH-MM"""
-    return datetime.now().strftime("%Y-%m-%d_%H-%M")
+    """Return formatted datetime string for diff filenames: YYYY-MM-DD_HH-MM-SS"""
+    return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 def extract_links_from_html(html: str, base_url: str) -> list:
     """Extract all links from HTML, return (text, URL) list"""
