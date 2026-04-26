@@ -135,7 +135,7 @@ def cmd_add(args):
     # Check for duplicate
     for w in data["watches"]:
         if w["url"] == args.url:
-            print(f"Already watching: {args.url}")
+            print(f"该网站已处于监控列表中: {args.url}")
             return
     
     watch = {
@@ -158,9 +158,9 @@ def cmd_add(args):
         safe_name = get_safe_filename(args.name or args.url)
         snap_path = SNAPSHOTS_DIR / f"{safe_name}.txt"
         snap_path.write_text(content)
-        print(f"✅ Added and snapshotted: {watch['name']}")
+        print(f"✅ 网站添加成功，并生成初始快照(首次获取内容): {watch['name']}")
     except Exception as e:
-        print(f"⚠️  Added but initial fetch failed: {e}")
+        print(f"⚠️  网站添加成功，但首次获取内容失败: {e}")
 
 def cmd_remove(args):
     """Remove a URL from watch list."""
@@ -170,16 +170,16 @@ def cmd_remove(args):
     data["watches"] = [w for w in data["watches"] if w["url"] != args.url and w["name"] != args.url]
     if len(data["watches"]) < original:
         save_watches(data)
-        print(f"✅ Removed: {args.url}")
+        print(f"✅ 成功移除网站: {args.url}")
     else:
-        print(f"Not found: {args.url}")
+        print(f"该网站未找到: {args.url}")
 
 def cmd_list(args):
     """List all watched URLs."""
     ensure_dirs()
     data = load_watches()
     if not data["watches"]:
-        print("No URLs being watched. Use 'add' to start.")
+        print("当前没有正在监控的网站，请使用 add 命令添加.")
         return
     
     fmt = getattr(args, 'format', 'text')
@@ -188,13 +188,13 @@ def cmd_list(args):
         return
     
     for i, w in enumerate(data["watches"], 1):
-        status = "never checked" if not w['last_check'] else f"checked {w['check_count']}x, {w['change_count']} changes"
-        sel = f" [selector: {w['selector']}]" if w.get("selector") else ""
+        status = "never checked" if not w['last_check'] else f"已检测 {w['check_count']} 次，发生 {w['change_count']} 次更新"
+        sel = f" [选择器: {w['selector']}]" if w.get("selector") else ""
         print(f"{i}. {w['name']}")
         print(f"   URL: {w['url']}{sel}")
-        print(f"   Status: {status}")
+        print(f"   状态: {status}")
         if w.get("last_change"):
-            print(f"   Last change: {w['last_change']}")
+            print(f"   最近一次更新: {w['last_change']}")
         print()
 
 def cmd_check(args):
@@ -203,14 +203,14 @@ def cmd_check(args):
     data = load_watches()
     
     if not data["watches"]:
-        print("No URLs being watched.")
+        print("当前没有正在监控的网站.")
         return
     
     watches_to_check = data["watches"]
     if args.url:
         watches_to_check = [w for w in data["watches"] if w["url"] == args.url or w["name"] == args.url]
         if not watches_to_check:
-            print(f"Not found: {args.url}")
+            print(f"未找到指定的监控网站: {args.url}")
             return
     
     results = []
@@ -285,7 +285,7 @@ def cmd_check(args):
             print(f"❌ {r['name']}: {r['error']}")
         elif r.get("changed"):
             changes_found = True
-            print(f"🔔 CHANGED: {r['name']}")
+            print(f"🔔 发现更新: {r['name']}")
             print(f"   URL: {r['url']}")
             print(f"   +{r['added_lines']} lines / -{r['removed_lines']} lines")
             if r.get("diff_preview"):
@@ -296,10 +296,10 @@ def cmd_check(args):
         elif r.get("note"):
             print(f"📸 {r['name']}: {r['note']}")
         else:
-            print(f"✅ {r['name']}: no changes")
+            print(f"✅ {r['name']}: 该网站没有更新")
     
     if not changes_found and not any(r.get("error") for r in results):
-        print("\nNo changes detected across all watched URLs.")
+        print("\n该网站没有找到更新内容.")
 
 def cmd_diff(args):
     """Show the last diff for a URL."""
@@ -313,17 +313,17 @@ def cmd_diff(args):
             break
     
     if not watch:
-        print(f"Not found: {args.url}")
+        print(f"未找到网站: {args.url}")
         return
     
     safe_name = get_safe_filename(watch["name"] or watch["url"])
     # Find latest diff file
     diffs = sorted(SNAPSHOTS_DIR.glob(f"{safe_name}_diff_*.txt"), reverse=True)
     if not diffs:
-        print(f"No diffs recorded for: {watch['name']}")
+        print(f"该网站暂无变化记录: {watch['name']}")
         return
     
-    print(f"Last diff for: {watch['name']}")
+    print(f"最近一次变化（diff）: {watch['name']}")
     print(f"URL: {watch['url']}")
     print("-" * 60)
     print(diffs[0].read_text())
@@ -340,13 +340,13 @@ def cmd_snapshot(args):
             break
     
     if not watch:
-        print(f"Not found: {args.url}")
+        print(f"未找到网站: {args.url}")
         return
     
     safe_name = get_safe_filename(watch["name"] or watch["url"])
     snap_path = SNAPSHOTS_DIR / f"{safe_name}.txt"
     if not snap_path.exists():
-        print(f"No snapshot for: {watch['name']}")
+        print(f"该网站暂无快照记录: {watch['name']}")
         return
     
     content = snap_path.read_text()
@@ -416,14 +416,14 @@ def perform_check_all():
         log_message("⚠️  No websites to monitor")
         return True
     
-    log_message(f"Found {len(watches)} websites to check, starting...")
+    log_message(f"共发现 {len(watches)} 个监控网站，开始检测...")
     
     for i, watch in enumerate(watches, 1):
         name = watch.get('name', '')
         url = watch.get('url', '')
         identifier = name if name else url
         
-        log_message(f"[{i}/{len(watches)}] Checking: {identifier[:50]}...")
+        log_message(f"[{i}/{len(watches)}] 正在检测: {identifier[:50]}...")
         
         try:
             result = subprocess.run(
@@ -444,16 +444,16 @@ def perform_check_all():
                         log_message(f"  ⚠️  {line}")
             
             if result.returncode == 0:
-                log_message(f"  ✅ Check completed")
+                log_message(f"  ✅ 该网站检查结束")
             else:
-                log_message(f"  ❌ Check failed (code: {result.returncode})")
+                log_message(f"  ❌ 该网站检查失败 (code: {result.returncode})")
                 
         except subprocess.TimeoutExpired:
-            log_message(f"  ⏱️  Check timeout")
+            log_message(f"  ⏱️  检查超时")
         except Exception as e:
-            log_message(f"  ❌ Check error: {e}")
+            log_message(f"  ❌ 检查出错: {e}")
     
-    log_message(f"✅ Check completed, monitored {len(watches)} websites")
+    log_message(f"✅ 全部检查结束，共检查 {len(watches)} 个网站")
     return True
 
 
@@ -485,7 +485,7 @@ def call_llm(prompt: str, system_prompt: str = None, temperature: float = 0.3) -
             return result["choices"][0].get("message", {}).get("content", "")
         return ""
     except Exception as e:
-        log_message(f"❌ LLM API call failed: {e}")
+        log_message(f"❌ LLM API 调用失败: {e}")
         return ""
 
 def is_relevant_content(diff_content: str) -> bool:
@@ -524,29 +524,33 @@ diff 内容：
 
 def extract_relevant_lines(diff_content: str) -> list:
     """Extract lines containing admissions information from diff"""
-    system_prompt = """You are an information extraction expert. Extract all lines related to admissions from the diff content.
+    system_prompt = """你是一个信息抽取专家。请从给定的 diff 内容中提取所有与招生相关的行。
 
-Each line format is: link text | link URL
+每一行的格式为：链接文本 | 链接 URL
 
-Only extract lines related to these topics:
-- Summer camp (夏令营)
-- Pre-admission (预推免)
-- Graduate entrance exam (考研)
-- PhD admission (博士招生)
-- Master's admission (硕士招生)
+只提取以下主题相关的内容：
+- 夏令营
+- 预推免
+- 考研
+- 博士招生
+- 硕士招生
 
-Return format as JSON array, each element contains:
-- topic: link text
-- url: link URL
+返回格式为 JSON 数组，每个元素包含：
+- topic：链接文本
+- url：链接 URL
 
-Return only JSON, nothing else."""
+只返回 JSON，不要输出任何其他内容。"""
     
-    user_prompt = f"Please extract all admissions-related lines from the following diff:\n\n{diff_content}\n\nReturn JSON format:"
+    user_prompt = f"""请从以下 diff 内容中提取所有与招生相关的行：
+
+{diff_content}
+
+请以 JSON 格式返回："""
     response = call_llm(user_prompt, system_prompt, temperature=0.2)
     
     # Log the raw response for debugging
     if not response or not response.strip():
-        log_message("⚠️  LLM returned empty response")
+        log_message("⚠️  LLM 返回为空")
         return []
     
     # Try to extract JSON from markdown code block if present
@@ -566,14 +570,14 @@ Return only JSON, nothing else."""
         data = json.loads(cleaned_response)
         if isinstance(data, list):
             return data
-        log_message(f"⚠️  LLM returned non-list JSON: {type(data)}")
+        log_message(f"⚠️  LLM 返回的 JSON 不是列表类型: {type(data)}")
         return []
     except json.JSONDecodeError as e:
-        log_message(f"❌ Failed to parse LLM response as JSON: {e}")
-        log_message(f"   Raw response (first 200 chars): {response[:200]}")
+        log_message(f"❌ 无法将 LLM 返回结果解析为 JSON: {e}")
+        log_message(f"   原始返回内容（前200字符）: {response[:200]}")
         return []
     except Exception as e:
-        log_message(f"❌ Unexpected error parsing LLM response: {e}")
+        log_message(f"❌ 解析 LLM 返回结果时发生未知错误: {e}")
         return []
 
 
@@ -644,10 +648,10 @@ def save_detail_file(diff_file: Path, details: list) -> Path:
     
     try:
         detail_path.write_text("\n".join(content_lines), encoding="utf-8")
-        log_message(f"✅ Saved detail file: {new_name}")
+        log_message(f"✅ 已保存 detail file: {new_name}")
         return detail_path
     except Exception as e:
-        log_message(f"❌ Failed to save detail file: {e}")
+        log_message(f"❌ detail file 保存失败: {e}")
         return None
 
 
@@ -792,10 +796,9 @@ def mark_as_done(filepath: Path) -> Path:
     
     try:
         filepath.rename(new_path)
-        log_message(f"✅ Marked as done: {new_name}")
         return new_path
     except Exception as e:
-        log_message(f"❌ Failed to mark as done: {e}")
+        log_message(f"❌无法重命名为 done 格式: {e}")
         return filepath
 
 def mark_as_unrelated(filepath: Path) -> Path:
@@ -812,10 +815,9 @@ def mark_as_unrelated(filepath: Path) -> Path:
     
     try:
         filepath.rename(new_path)
-        log_message(f"✅ Marked as unrelated: {new_name}")
         return new_path
     except Exception as e:
-        log_message(f"❌ Failed to mark as unrelated: {e}")
+        log_message(f"❌ 无法重命名为 unrelated 格式: {e}")
         return filepath
 
 
@@ -835,32 +837,30 @@ def process_diff_files():
     unprocessed = find_unprocessed_diffs()
     
     if not unprocessed:
-        log_message("No unprocessed diff files")
+        log_message("没有需要处理的diff_file")
         return True
     
-    log_message(f"Processing {len(unprocessed)} unprocessed diff files")
+    log_message(f"正在处理 {len(unprocessed)} 个未处理的 diff_file")
     
     for diff_file in unprocessed:
         log_message(f"\n{'=' * 80}")
-        log_message(f"Processing: {diff_file.name}")
-        log_message('=' * 80)
+        log_message(f"正在处理的diff_file: {diff_file.name}")
         
         try:
             diff_content = diff_file.read_text(encoding="utf-8")
-            log_message(f"✅ Read diff file, length: {len(diff_content)} chars")
             
             if not is_relevant_content(diff_content):
-                log_message("⚠️  没有相关信息更新")
+                log_message("⚠️  在diff文件中没有查询到相关信息的更新")
                 mark_as_unrelated(diff_file)
                 continue
             
             relevant_lines = extract_relevant_lines(diff_content)
             if not relevant_lines:
-                log_message("⚠️  没有相关信息更新")
+                log_message("⚠️  在diff文件中没有查询到相关信息的更新")
                 mark_as_unrelated(diff_file)
                 continue
             
-            log_message(f"✅ Extracted {len(relevant_lines)} relevant lines")
+            log_message(f"✅ 抓取了 {len(relevant_lines)} 行相关内容")
             
             details = []
             for i, item in enumerate(relevant_lines, 1):
@@ -869,8 +869,6 @@ def process_diff_files():
                 
                 if not url:
                     continue
-                
-                log_message(f"[{i}/{len(relevant_lines)}] Fetching: {topic[:50]}...")
                 
                 page_data = fetch_url_details(url)
                 detail = {
@@ -983,9 +981,10 @@ def scheduled_push(START_TIME: str, END_TIME: str, INTERVAL: int):
         log_message(f"🔔 第 {check_count} 次检测开始")
         
         # Step 1: Perform website check (from periodic_check.py)
+        log_message(f"🚀🚀🚀  第1步：检测监控列表中的网站更新")
         perform_check_all()
-        
         # Step 2: Process diff files (from process_diffs.py)
+        log_message("🚀🚀🚀 第2步：检查更新内容，如包含指定主题则进行自动推送")
         process_diff_files()
         
         # Check if still in monitoring window
@@ -1003,7 +1002,8 @@ def scheduled_push(START_TIME: str, END_TIME: str, INTERVAL: int):
         time_to_end = (end_datetime - now).total_seconds()
         
         if time_to_end < wait_seconds:
-            log_message(f"⏰ 距离监控结束不足 {INTERVAL} 分钟，准备退出")
+            log_message(f"⏰ 距离监控结束不足 {INTERVAL} 分钟，退出监控任务")
+            break
         else:
             log_message(f"⏳ 等待 {INTERVAL} 分钟后进行下一次检测...")
             try:
