@@ -41,6 +41,7 @@ uv run --with beautifulsoup4 python scripts/monitor.py list
 uv run --with beautifulsoup4 python scripts/monitor.py diff "Example"
 uv run --with beautifulsoup4 python scripts/monitor.py snapshot "Example" --lines 50
 uv run --with beautifulsoup4 python scripts/monitor.py remove "Example"
+uv run --with beautifulsoup4 python scripts/monitor.py scheduled-push
 ```
 
 ## Commands
@@ -53,6 +54,41 @@ uv run --with beautifulsoup4 python scripts/monitor.py remove "Example"
 | `check` | `[url-or-name] [-f json]` | Check for changes (all or one) |
 | `diff` | `<url-or-name>` | Show last recorded diff |
 | `snapshot` | `<url-or-name> [-l lines]` | Show current snapshot |
+| `scheduled-push` | *(no args)* | Monitor websites and automatically push topic-relevant updates via email |
+
+## Scheduled Push
+
+Periodically monitor websites and automatically push updates related to target topics via email.
+
+**Configuration:**
+All settings loaded from `config/config.json`:
+
+- `monitoring.start_time` / `end_time` / `interval` — Time window (HH:MM) and check frequency (minutes)
+- `email.target` / `smtp.*` — Email delivery (SMTP password field: authorization code, not login password)
+- `llm.api_key` / `api_base` / `model` / `*_temperature` — DeepSeek API settings for content analysis
+
+**Usage:**
+```bash
+bash scripts/run.sh scheduled-push
+```
+
+**Workflow:**
+1. Runs within configured time window
+2. Checks all monitored URLs for content changes
+3. Analyzes diff content with LLM to detect topic-relevant updates
+4. Extracts key information from relevant updates
+5. Generates summary and sends via email
+
+**Target Topics:**
+Admissions notifications, summer camps, exam announcements, graduate/undergraduate recruitment, etc.
+
+**Output:**
+- Log: `data/periodic_check.log`
+- Diffs: `data/snapshots/*_diff_*.txt`
+- Details: `data/snapshots/*_detail_*.txt`
+- Summaries: `data/snapshots/*_summarize_*.txt`
+
+**Note:** Does not accept CLI arguments — all parameters must be configured in `config.json`.
 
 ## Output Symbols
 

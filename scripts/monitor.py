@@ -29,6 +29,44 @@ DATA_DIR = Path(os.environ.get("WEB_MONITOR_DIR", Path.home() / ".web-monitor"))
 WATCHES_FILE = DATA_DIR / "watches.json"
 SNAPSHOTS_DIR = DATA_DIR / "snapshots"
 
+# Configuration directory and file
+CONFIG_DIR = Path(os.environ.get("WEB_MONITOR_CONFIG_DIR",
+                                  Path(__file__).parent.parent / "config"))
+CONFIG_FILE = CONFIG_DIR / "config.json"
+
+
+def load_config() -> dict:
+    """Load configuration from config.json
+
+    All parameters (monitoring, email, LLM) are loaded from config.json.
+    No default values are provided - the config file must exist and be valid.
+
+    Returns:
+        dict: Configuration dictionary
+
+    Raises:
+        FileNotFoundError: If config file does not exist
+        json.JSONDecodeError: If config file has invalid JSON format
+    """
+    if not CONFIG_FILE.exists():
+        raise FileNotFoundError(
+            f"Configuration file not found: {CONFIG_FILE}\n"
+            f"Please create a config file at this location.\n"
+            f"Refer to documentation for the required structure."
+        )
+
+    try:
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(
+            f"Invalid JSON format in config file: {CONFIG_FILE}\n"
+            f"Error: {e.msg}",
+            e.doc,
+            e.pos
+        )
+
+
 def ensure_dirs():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -366,18 +404,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
 
-# Email configuration
-TARGET_EMAIL = "20223002145@hainanu.edu.cn"
-SMTP_SERVER = "smtp.qq.com"
-SMTP_PORT = 587
-SMTP_USER = "3160142733@qq.com"
-SMTP_PASSWORD = "ghqbemtyalrudfcg"  # Need to fill in
-
-# LLM configuration
-DEEPSEEK_API_KEY = "sk-2bb769aed53c454d967aa296500ff781"
-DEEPSEEK_API_BASE = "https://api.deepseek.com/v1/chat/completions"
-RELEVANT_TOPICS = ["夏令营", "预推免", "考研", "博士招生", "硕士招生"]
-
 
 def log_message(message: str):
     """Log message to periodic_check.log file"""
@@ -457,30 +483,45 @@ def perform_check_all():
     return True
 
 
-def call_llm(prompt: str, system_prompt: str = None, temperature: float = 0.3) -> str:
-    """Call DeepSeek LLM API"""
+def call_llm(prompt: str, temperature: float, system_prompt: str = None) -> str:
+    """Call DeepSeek LLM API
+
+    All LLM configuration (api_key, api_base, model) is loaded from config.json.
+    The temperature parameter must be provided by the caller from config.json.
+
+    Args:
+        prompt: User prompt
+        system_prompt: Optional system prompt
+        temperature: Temperature parameter (must be loaded from config.json)
+
+    Returns:
+        str: LLM response content
+    """
+    config = load_config()
+    llm_config = config["llm"]
+
     headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Authorization": f"Bearer {llm_config['api_key']}",
         "Content-Type": "application/json"
     }
-    
+
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
-    
+
     payload = {
-        "model": "deepseek-chat",
+        "model": llm_config["model"],
         "messages": messages,
         "temperature": temperature,
         "stream": False
     }
-    
+
     try:
-        response = requests.post(DEEPSEEK_API_BASE, headers=headers, json=payload, timeout=30)
+        response = requests.post(llm_config["api_base"], headers=headers, json=payload, timeout=30)
         response.raise_for_status()
         result = response.json()
-        
+
         if "choices" in result and len(result["choices"]) > 0:
             return result["choices"][0].get("message", {}).get("content", "")
         return ""
@@ -518,7 +559,8 @@ diff 内容：
 - 如果是具体招生通知、公告、公示、名单、报名安排、考核安排、招生简章，返回 YES。
 - 只返回 YES 或 NO。"""
 
-    response = call_llm(user_prompt, system_prompt, temperature=0.1)
+    config = load_config()
+    response = call_llm(user_prompt, temperature=config["llm"]["relevance_check_temperature"], system_prompt=system_prompt)
     return response.strip().upper() == "YES"
 
 
@@ -546,7 +588,8 @@ def extract_relevant_lines(diff_content: str) -> list:
 {diff_content}
 
 请以 JSON 格式返回："""
-    response = call_llm(user_prompt, system_prompt, temperature=0.2)
+    config = load_config()
+    response = call_llm(user_prompt, temperature=config["llm"]["extraction_temperature"], system_prompt=system_prompt)
     
     # Log the raw response for debugging
     if not response or not response.strip():
@@ -672,8 +715,9 @@ def summarize_details(detail_content: str) -> list:
 {detail_content}
 
 请以 JSON 数组形式返回总结结果："""
-    
-    response = call_llm(user_prompt, system_prompt, temperature=0.2)
+
+    config = load_config()
+    response = call_llm(user_prompt, temperature=config["llm"]["summary_temperature"], system_prompt=system_prompt)
     
     # Log the raw response for debugging
     if not response or not response.strip():
@@ -749,30 +793,46 @@ def save_summarize_file(detail_file: Path, summaries: list, details: list) -> Pa
 
 
 def push_to_email(summarize_file: Path, content: str) -> bool:
-    """Send summary to email"""
-    if not SMTP_USER or not SMTP_PASSWORD:
+    """Send summary to email
+
+    All email configuration (SMTP server, port, user, authorization code, target)
+    is loaded from config.json.
+
+    Note: email.smtp.password field stores the SMTP authorization code, not the login password.
+
+    Args:
+        summarize_file: Path to the summary file
+        content: Email body content
+
+    Returns:
+        bool: True if email sent successfully, False otherwise
+    """
+    config = load_config()
+    email_config = config["email"]
+
+    if not email_config["smtp"]["user"] or not email_config["smtp"]["password"]:
         log_message("⚠️  警告：SMTP_USER 和 SMTP_PASSWORD 未配置")
         return False
-    
+
     try:
         msg = MIMEMultipart()
-        msg['From'] = SMTP_USER
-        msg['To'] = TARGET_EMAIL
+        msg['From'] = email_config["smtp"]["user"]
+        msg['To'] = email_config["target"]
         msg['Subject'] = f"招生信息汇总 - {summarize_file.stem}"
-        
+
         body = MIMEText(content, 'plain', 'utf-8')
         msg.attach(body)
-        
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+
+        with smtplib.SMTP(email_config["smtp"]["server"], email_config["smtp"]["port"]) as server:
             server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.login(email_config["smtp"]["user"], email_config["smtp"]["password"])
             server.send_message(msg)
-        
-        log_message(f"✅ Email已经成功发送至：{TARGET_EMAIL}")
+
+        log_message(f"✅ Email已经成功发送至：{email_config['target']}")
         return True
-        
+
     except smtplib.SMTPAuthenticationError:
-        log_message(f"❌ SMTP 身份验证失败")
+        log_message(f"❌ SMTP 身份验证失败（请检查授权码是否正确）")
         return False
     except smtplib.SMTPException as e:
         log_message(f"❌ SMTP 错误: {e}")
@@ -915,33 +975,38 @@ def process_diff_files():
     return True
 
 
-def scheduled_push(START_TIME: str, END_TIME: str, INTERVAL: int):
+def scheduled_push():
     """
     Scheduled push function - Monitor websites for new admissions information and push to user.
-    
+
     This function runs in a monitoring time window, periodically checks all monitored websites,
     processes new diff files, analyzes content with LLM, and pushes summaries via email.
-    
-    Args:
-        START_TIME (str): Start monitoring time in format "YYYY-MM-DD HH:MM"
-        END_TIME (str): End monitoring time in format "YYYY-MM-DD HH:MM"
-        INTERVAL (int): Check interval in minutes
-    
-    Example:
-        scheduled_push("2026-04-25 19:45", "2026-04-25 19:50", 1)
-        # Monitor from 19:45 to 19:50, check every 1 minute
+
+    All parameters (start_time, end_time, interval, email config, LLM config)
+    are loaded from config.json. No command line arguments are accepted.
+
+    Configuration is loaded from: /workspace/projects/workspace/skills/web-monitor/config/config.json
     """
+    # Load configuration
+    config = load_config()
+    monitoring_config = config["monitoring"]
+
+    # Load monitoring parameters from config
+    start_time = datetime.now().strftime('%Y-%m-%d') + ' ' + monitoring_config["start_time"]
+    end_time = datetime.now().strftime('%Y-%m-%d') + ' ' + monitoring_config["end_time"]
+    interval = monitoring_config["interval"]
+
     log_message("=" * 40)
     log_message("启动定时推送服务")
     log_message("=" * 40)
-    log_message(f"开始时间: {START_TIME}")
-    log_message(f"结束时间: {END_TIME}")
-    log_message(f"每次检测的间隔: {INTERVAL} 分钟")
+    log_message(f"开始时间: {start_time}")
+    log_message(f"结束时间: {end_time}")
+    log_message(f"每次检测的间隔: {interval} 分钟")
     log_message("=" * 40)
-    
+
     try:
-        start_datetime = parse_datetime(START_TIME)
-        end_datetime = parse_datetime(END_TIME)
+        start_datetime = parse_datetime(start_time)
+        end_datetime = parse_datetime(end_time)
     except ValueError as e:
         log_message(f"❌ 时间格式错误: {e}")
         return 1
@@ -971,7 +1036,7 @@ def scheduled_push(START_TIME: str, END_TIME: str, INTERVAL: int):
             return 0
     
     log_message(f"✅ 当前时间 {datetime.now().strftime('%H:%M')} 在监控时间范围内，开始执行循环...")
-    log_message(f"🔄 每 {INTERVAL} 分钟执行一次检测")
+    log_message(f"🔄 每 {interval} 分钟执行一次检测")
     
     # Monitoring loop
     check_count = 0
@@ -996,16 +1061,16 @@ def scheduled_push(START_TIME: str, END_TIME: str, INTERVAL: int):
             return 0
         
         # Wait for next check
-        wait_seconds = INTERVAL * 60
-        
+        wait_seconds = interval * 60
+
         now = datetime.now()
         time_to_end = (end_datetime - now).total_seconds()
-        
+
         if time_to_end < wait_seconds:
-            log_message(f"⏰ 距离监控结束不足 {INTERVAL} 分钟，退出监控任务")
+            log_message(f"⏰ 距离监控结束不足 {interval} 分钟，退出监控任务")
             break
         else:
-            log_message(f"⏳ 等待 {INTERVAL} 分钟后进行下一次检测...")
+            log_message(f"⏳ 等待 {interval} 分钟后进行下一次检测...")
             try:
                 time.sleep(wait_seconds)
             except KeyboardInterrupt:
@@ -1055,13 +1120,10 @@ def main():
     p_snap.add_argument("url", help="URL or name")
     p_snap.add_argument("--lines", "-l", type=int, help="Limit output lines")
     p_snap.set_defaults(func=cmd_snapshot)
-    
+
     # scheduled-push
     p_sched = sub.add_parser("scheduled-push", help="Scheduled push: monitor websites and push admissions info to user")
-    p_sched.add_argument("start_time", help="Start time (YYYY-MM-DD HH:MM)")
-    p_sched.add_argument("end_time", help="End time (YYYY-MM-DD HH:MM)")
-    p_sched.add_argument("interval", type=int, help="Check interval (minutes)")
-    p_sched.set_defaults(func=lambda args: scheduled_push(args.start_time, args.end_time, args.interval))
+    p_sched.set_defaults(func=lambda args: scheduled_push())
     
     args = parser.parse_args()
     args.func(args)
