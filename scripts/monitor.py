@@ -760,7 +760,7 @@ def save_summarize_file(detail_file: Path, summaries: list, details: list) -> Pa
         "SYSU_AI_": "【中山大学人工智能学院新信息】",
         "SYSU_CST_": "【中山大学网络空间安全学院新信息】",
     }
-    source_title = "【博客园新信息】"
+    source_title = "【CSDN博客新信息】"
     for prefix, title in source_mapping.items():
         if new_name.startswith(prefix):
             source_title = title
@@ -969,6 +969,51 @@ def process_diff_files():
     return True
 
 
+def summarize_check_results(start_time: datetime) -> dict:
+    """
+    Summarize the results of this round of checks.
+
+    Scans for newly created summarize files (created after start_time)
+    and counts them by source prefix.
+
+    Args:
+        start_time: The time when the check started
+
+    Returns:
+        dict: A dictionary with source names as keys and counts as values
+              e.g., {"中山大学软工学院": 2, "中山大学计算机学院": 1}
+    """
+    source_mapping = {
+        "SYSU_SE_": "中山大学软工学院",
+        "SYSU_CS_": "中山大学计算机学院",
+        "SYSU_AI_": "中山大学人工智能学院",
+        "SYSU_CST_": "中山大学网络空间安全学院",
+        # 测试用
+        "CSDN_blog_": "CSDN博客",
+    }
+
+    results = {}
+
+    # Find all summarize files
+    if not SNAPSHOTS_DIR.exists():
+        return results
+
+    summarize_files = list(SNAPSHOTS_DIR.glob("*_summarize_*.txt"))
+
+    for file in summarize_files:
+        # Check if file was created after start_time
+        file_mtime = datetime.fromtimestamp(file.stat().st_mtime)
+
+        if file_mtime >= start_time:
+            # Determine source from filename prefix
+            for prefix, name in source_mapping.items():
+                if file.name.startswith(prefix):
+                    results[name] = results.get(name, 0) + 1
+                    break
+
+    return results
+
+
 def scheduled_push():
     """
     Scheduled push function - Monitor websites for new admissions information and push to user.
@@ -1038,13 +1083,28 @@ def scheduled_push():
         check_count += 1
         log_message("")
         log_message(f"🔔 第 {check_count} 次检测开始")
-        
+
+        # Record start time for this check
+        check_start_time = datetime.now()
+
         # Step 1: Perform website check (from periodic_check.py)
         log_message(f"🚀🚀🚀  第1步：检测监控列表中的网站更新")
         perform_check_all()
         # Step 2: Process diff files (from process_diffs.py)
         log_message("🚀🚀🚀 第2步：检查更新内容，如包含指定主题则进行自动推送")
         process_diff_files()
+
+        # Summarize results of this check
+        results = summarize_check_results(check_start_time)
+        if results:
+            log_message("")
+            log_message("本轮检查结束，共检查到以下相关信息并推送到邮箱：")
+            for source, count in results.items():
+                log_message(f"{source} {count}条新消息")
+        else:
+            log_message("")
+            log_message("本轮检查结束，未检测到相关信息")
+        log_message("")
         
         # Check if still in monitoring window
         if not is_within_monitoring_window(start_datetime, end_datetime):
