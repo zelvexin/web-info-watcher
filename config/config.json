@@ -1,7 +1,7 @@
 {
   "monitoring": {
-    "start_time": "2026-04-28 11:06",
-    "end_time": "2026-04-28 11:08",
+    "start_time": "2026-04-28 12:24",
+    "end_time": "2026-04-28 12:27",
     "interval": 1,
     "_comment_start_time": "监控开始时间，格式：YYYY-MM-DD HH:MM，例如：2026-04-28 09:00",
     "_comment_end_time": "监控结束时间，格式：YYYY-MM-DD HH:MM，例如：2026-04-28 22:00",
