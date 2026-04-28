@@ -424,14 +424,8 @@ def parse_datetime(datetime_str: str) -> datetime:
 
 def is_within_monitoring_window(start_time: datetime, end_time: datetime) -> bool:
     """Check if current time is within monitoring window"""
-    now = datetime.now().time()
-    start = start_time.time()
-    end = end_time.time()
-
-    if start <= end:
-        return start <= now <= end
-    else:
-        return now >= start or now <= end
+    now = datetime.now()
+    return start_time <= now <= end_time
 
 def perform_check_all():
     """Perform a complete check on all monitored websites"""
@@ -992,21 +986,21 @@ def scheduled_push():
     monitoring_config = config["monitoring"]
 
     # Load monitoring parameters from config
-    start_time = datetime.now().strftime('%Y-%m-%d') + ' ' + monitoring_config["start_time"]
-    end_time = datetime.now().strftime('%Y-%m-%d') + ' ' + monitoring_config["end_time"]
+    start_time_str = monitoring_config["start_time"]
+    end_time_str = monitoring_config["end_time"]
     interval = monitoring_config["interval"]
 
     log_message("=" * 40)
     log_message("启动定时推送服务")
     log_message("=" * 40)
-    log_message(f"开始时间: {start_time}")
-    log_message(f"结束时间: {end_time}")
+    log_message(f"开始时间: {start_time_str}")
+    log_message(f"结束时间: {end_time_str}")
     log_message(f"每次检测的间隔: {interval} 分钟")
     log_message("=" * 40)
 
     try:
-        start_datetime = parse_datetime(start_time)
-        end_datetime = parse_datetime(end_time)
+        start_datetime = datetime.strptime(start_time_str, '%Y-%m-%d %H:%M')
+        end_datetime = datetime.strptime(end_time_str, '%Y-%m-%d %H:%M')
     except ValueError as e:
         log_message(f"❌ 时间格式错误: {e}")
         return 1

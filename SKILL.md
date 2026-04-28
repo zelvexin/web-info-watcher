@@ -67,6 +67,8 @@ All settings loaded from `config/config.json`:
 - `email.target` / `smtp.*` — Email delivery (SMTP password field: authorization code, not login password)
 - `llm.api_key` / `api_base` / `model` / `*_temperature` — DeepSeek API settings for content analysis
 
+Website monitoring information is recorded in `/data/watches.json`.
+
 **Usage:**
 ```bash
 bash scripts/run.sh scheduled-push
