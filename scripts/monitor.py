@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-web-monitor: Track web pages for changes and get alerts.
+web-info-watcher: Track web pages for changes and get alerts.
 Stores snapshots, computes diffs, supports CSS selectors for targeted monitoring.
 """
 
@@ -25,12 +25,12 @@ try:
 except ImportError:
     HAS_BS4 = False
 
-DATA_DIR = Path(os.environ.get("WEB_MONITOR_DIR", Path.home() / ".web-monitor"))
+DATA_DIR = Path(os.environ.get("WEB_INFO_WATCHER_DIR", Path(__file__).parent.parent / "data"))
 WATCHES_FILE = DATA_DIR / "watches.json"
 SNAPSHOTS_DIR = DATA_DIR / "snapshots"
 
 # Configuration directory and file
-CONFIG_DIR = Path(os.environ.get("WEB_MONITOR_CONFIG_DIR",
+CONFIG_DIR = Path(os.environ.get("WEB_INFO_WATCHER_CONFIG_DIR",
                                   Path(__file__).parent.parent / "config"))
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
@@ -135,7 +135,7 @@ def format_links_to_string(links: list) -> str:
 def fetch_content(url: str, selector: str = None, headers: dict = None) -> str:
     """Fetch web page and extract all links"""
     req_headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) web-monitor/1.0"
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) web-info-watcher/1.0"
     }
     if headers:
         req_headers.update(headers)
@@ -621,7 +621,7 @@ def extract_relevant_lines(diff_content: str) -> list:
 def fetch_url_details(url: str) -> dict:
     """Fetch and extract title and content from URL"""
     req_headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) web-monitor/1.0"
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) web-info-watcher/1.0"
     }
     
     req = Request(url, headers=req_headers)
@@ -979,7 +979,7 @@ def scheduled_push():
     All parameters (start_time, end_time, interval, email config, LLM config)
     are loaded from config.json. No command line arguments are accepted.
 
-    Configuration is loaded from: /workspace/projects/workspace/skills/web-monitor/config/config.json
+    Configuration is loaded from: /workspace/projects/workspace/skills/web-info-watcher/config/config.json
     """
     # Load configuration
     config = load_config()
@@ -1076,7 +1076,7 @@ def scheduled_push():
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="web-monitor",
+        prog="web-info-watcher",
         description="Monitor web pages for changes"
     )
     sub = parser.add_subparsers(dest="command", required=True)
