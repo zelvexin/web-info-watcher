@@ -1,0 +1,103 @@
+{
+  "watches": [
+    {
+      "url": "https://sse.sysu.edu.cn/development/development03",
+      "name": "SYSU_SE_Postgraduate",
+      "chinese_name": "\u4e2d\u5c71\u5927\u5b66\u8f6f\u5de5\u7814\u62db",
+      "selector": null,
+      "added": "2026-04-24T02:24:45.373083+00:00",
+      "last_check": "2026-04-28T23:26:12.072772+00:00",
+      "last_change": "2026-04-24T13:17:45.687194+00:00",
+      "check_count": 92,
+      "change_count": 1
+    },
+    {
+      "url": "https://sse.sysu.edu.cn/development/development02",
+      "name": "SYSU_SE_undergraduate",
+      "chinese_name": "\u4e2d\u5c71\u5927\u5b66\u8f6f\u5de5\u672c\u79d1\u62db\u751f",
+      "selector": null,
+      "added": "2026-04-24T03:38:35.091444+00:00",
+      "last_check": "2026-04-28T23:26:12.672675+00:00",
+      "last_change": "2026-04-24T13:17:46.237243+00:00",
+      "check_count": 95,
+      "change_count": 3
+    },
+    {
+      "url": "https://blog.csdn.net/2301_79112268",
+      "name": "CSDN_blog",
+      "chinese_name": "CSDN\u4e2a\u4eba\u535a\u5ba2",
+      "selector": null,
+      "added": "2026-04-24T08:20:31.247255+00:00",
+      "last_check": "2026-04-28T23:26:13.328354+00:00",
+      "last_change": "2026-04-28T23:26:13.328631+00:00",
+      "check_count": 90,
+      "change_count": 86
+    },
+    {
+      "url": "https://cse.sysu.edu.cn/admission/summer_camp",
+      "name": "SYSU_CS_summer_camp",
+      "chinese_name": "\u4e2d\u5927\u8ba1\u9662\u590f\u4ee4\u8425",
+      "selector": null,
+      "added": "2026-04-24T10:23:00.000000+00:00",
+      "last_check": "2026-04-28T23:26:13.965199+00:00",
+      "last_change": "2026-04-28T23:26:13.965502+00:00",
+      "check_count": 85,
+      "change_count": 37
+    },
+    {
+      "url": "https://cse.sysu.edu.cn/admission/master",
+      "name": "SYSU_CS_master",
+      "chinese_name": "\u4e2d\u5927\u8ba1\u9662\u7855\u58eb\u62db\u751f",
+      "selector": null,
+      "added": "2026-04-24T10:31:00.000000+00:00",
+      "last_check": "2026-04-28T23:26:14.659440+00:00",
+      "last_change": "2026-04-28T23:26:14.659794+00:00",
+      "check_count": 84,
+      "change_count": 32
+    },
+    {
+      "url": "https://cse.sysu.edu.cn/admission/dr",
+      "name": "SYSU_CS_doctor",
+      "chinese_name": "\u4e2d\u5927\u8ba1\u9662\u535a\u58eb\u62db\u751f",
+      "selector": null,
+      "added": "2026-04-24T10:40:00.000000+00:00",
+      "last_check": "2026-04-28T23:26:15.455303+00:00",
+      "last_change": "2026-04-28T23:26:15.455662+00:00",
+      "check_count": 85,
+      "change_count": 48
+    },
+    {
+      "url": "https://sai.sysu.edu.cn/cat/132",
+      "name": "SYSU_AI",
+      "chinese_name": "\u4e2d\u5927\u4eba\u5de5\u667a\u80fd\u5b66\u9662",
+      "selector": null,
+      "added": "2026-04-24T10:40:00.000000+00:00",
+      "last_check": "2026-04-28T23:26:16.042988+00:00",
+      "last_change": "2026-04-28T23:26:16.043371+00:00",
+      "check_count": 85,
+      "change_count": 57
+    },
+    {
+      "url": "https://scst.sysu.edu.cn/admission/graduate/01",
+      "name": "SYSU_CST_master",
+      "chinese_name": "\u4e2d\u5927\u7f51\u7a7a\u5b89\u5b66\u9662\u7855\u58eb\u62db\u751f",
+      "selector": null,
+      "added": "2026-04-24T10:40:00.000000+00:00",
+      "last_check": "2026-04-28T23:26:16.624409+00:00",
+      "last_change": "2026-04-28T23:26:16.624710+00:00",
+      "check_count": 86,
+      "change_count": 64
+    },
+    {
+      "url": "https://scst.sysu.edu.cn/admission/graduate/02",
+      "name": "SYSU_CST_doctor",
+      "chinese_name": "\u4e2d\u5927\u7f51\u7a7a\u5b89\u5b66\u9662\u535a\u58eb\u62db\u751f",
+      "selector": null,
+      "added": "2026-04-24T10:40:00.000000+00:00",
+      "last_check": "2026-04-28T23:26:17.256863+00:00",
+      "last_change": "2026-04-28T23:26:17.257157+00:00",
+      "check_count": 85,
+      "change_count": 56
+    }
+  ]
+}
