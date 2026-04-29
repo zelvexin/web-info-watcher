@@ -1,9 +1,9 @@
 ---
-name: web-monitor
+name: web-info-watcher
 description: Monitor web pages for content changes and get alerts. Track URLs, detect updates, view diffs. Use when asked to watch a website, track changes on a page, monitor for new posts/content, set up page change alerts, or check if a site has been updated. Supports CSS selectors for targeted monitoring.
 ---
 
-# Web Monitor
+# Web Info Watcher
 
 Track web pages for changes. Stores snapshots, computes diffs, supports CSS selectors.
 
@@ -13,7 +13,7 @@ Track web pages for changes. Stores snapshots, computes diffs, supports CSS sele
 
 ```bash
 # 在 skill 目录下运行便捷脚本
-cd /path/to/web-monitor
+cd /path/to/web-info-watcher
 bash scripts/run.sh add "https://example.com" --name "Example"
 
 # 检查更新
@@ -27,7 +27,7 @@ bash scripts/run.sh list
 
 ```bash
 # 设置环境变量
-export WEB_MONITOR_DIR="/path/to/web-monitor/data"
+export WEB_INFO_WATCHER_DIR="/path/to/web-info-watcher/data"
 export PATH="$HOME/.local/bin:$PATH"
 
 # 添加监控
@@ -63,7 +63,7 @@ Periodically monitor websites and automatically push updates related to target t
 **Configuration:**
 All settings loaded from `config/config.json`:
 
-- `monitoring.start_time` / `end_time` / `interval` — Time window (HH:MM) and check frequency (minutes)
+- `monitoring.start_time` / `end_time` / `interval` — Time window (YYYY-MM-DD HH:MM) and check frequency (minutes)
 - `email.target` / `smtp.*` — Email delivery (SMTP password field: authorization code, not login password)
 - `llm.api_key` / `api_base` / `model` / `*_temperature` — DeepSeek API settings for content analysis
 
@@ -108,10 +108,10 @@ Admissions notifications, summer camps, exam announcements, graduate/undergradua
 - `data/snapshots/` — 页面快照
 
 **自定义存储位置：**
-可通过 `WEB_MONITOR_DIR` 环境变量修改存储位置：
+可通过 `WEB_INFO_WATCHER_DIR` 环境变量修改存储位置：
 
 ```bash
-export WEB_MONITOR_DIR="/custom/path/data"
+export WEB_INFO_WATCHER_DIR="/custom/path/data"
 ```
 
 ## Tips
