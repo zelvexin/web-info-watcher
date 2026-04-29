@@ -29,6 +29,9 @@ DATA_DIR = Path(os.environ.get("WEB_INFO_WATCHER_DIR", Path(__file__).parent.par
 WATCHES_FILE = DATA_DIR / "watches.json"
 SNAPSHOTS_DIR = DATA_DIR / "snapshots"
 
+# Global variable to store the summary pool file path for this monitoring session
+SUMMARY_POOL_FILE = None
+
 # Configuration directory and file
 CONFIG_DIR = Path(os.environ.get("WEB_INFO_WATCHER_CONFIG_DIR",
                                   Path(__file__).parent.parent / "config"))
@@ -748,46 +751,56 @@ def summarize_details(detail_content: str) -> list:
 
 
 def save_summarize_file(detail_file: Path, summaries: list, details: list) -> Path:
-    """Save summary to summarize file"""
+    """Save summary entry to the summary pool file"""
+    global SUMMARY_POOL_FILE
+    
     stem = detail_file.stem
     new_name = stem.replace("_detail_", "_summarize_") + ".txt"
     summarize_path = SNAPSHOTS_DIR / new_name
     
-    # Determine source title based on filename prefix
+    # Determine source based on filename prefix
     source_mapping = {
-        "SYSU_SE_": "【中山大学软工学院新信息】",
-        "SYSU_CS_": "【中山大学计算机学院新信息】",
-        "SYSU_AI_": "【中山大学人工智能学院新信息】",
-        "SYSU_CST_": "【中山大学网络空间安全学院新信息】",
+        "SYSU_SE_": "中山大学软工学院",
+        "SYSU_CS_": "中山大学计算机学院",
+        "SYSU_AI_": "中山大学人工智能学院",
+        "SYSU_CST_": "中山大学网络空间安全学院",
+        "CSDN_blog": "CSDN博客",
     }
-    source_title = "【CSDN博客新信息】"
-    for prefix, title in source_mapping.items():
+  
+    for prefix, name in source_mapping.items():
         if new_name.startswith(prefix):
-            source_title = title
+            source_name = name
             break
     
-    content_lines = []
-    content_lines.append(f"{source_title} - 生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    content_lines.append("=" * 80)
-    content_lines.append("")
+    # Generate content for each summary entry
+    entries = []
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     for i, (summary, detail) in enumerate(zip(summaries, details), 1):
-        content_lines.append(f"【信息{i}】")
-        content_lines.append(summary)
-        content_lines.append("")
-        content_lines.append(f"原文链接: {detail.get('url', 'N/A')}")
-        content_lines.append("-" * 80)
-        content_lines.append("")
+        # Format: 【timestamp source_name】
+        entries.append(f"【{timestamp} {source_name}新信息】")
+        entries.append(summary)
+        entries.append("")
+        entries.append(f"原文链接: {detail.get('url', 'N/A')}")
+        entries.append("-" * 80)
+        entries.append("")
     
+    # Save to individual summarize file (for historical record)
     try:
-        summarize_path.write_text("\n".join(content_lines), encoding="utf-8")
-        return summarize_path
+        summarize_path.write_text("\n".join(entries), encoding="utf-8")
     except Exception as e:
         return None
+    
+    # Append to summary pool file (for email sending)
+    if SUMMARY_POOL_FILE and SUMMARY_POOL_FILE.exists():
+        with open(SUMMARY_POOL_FILE, 'a', encoding='utf-8') as f:
+            f.write("\n".join(entries) + "\n")
+    
+    return summarize_path
 
 
-def push_to_email(summarize_file: Path, content: str) -> bool:
-    """Send summary to email
+def push_to_email(summary_pool_path: Path) -> bool:
+    """Send summary to email with all historical information
 
     All email configuration (SMTP server, port, user, authorization code, target)
     is loaded from config.json.
@@ -795,8 +808,7 @@ def push_to_email(summarize_file: Path, content: str) -> bool:
     Note: email.smtp.password field stores the SMTP authorization code, not the login password.
 
     Args:
-        summarize_file: Path to the summary file
-        content: Email body content
+        summary_pool_path: Path to the summary pool file containing all historical entries
 
     Returns:
         bool: True if email sent successfully, False otherwise
@@ -809,12 +821,39 @@ def push_to_email(summarize_file: Path, content: str) -> bool:
         return False
 
     try:
+        # Read all information from summary pool file
+        if summary_pool_path and summary_pool_path.exists():
+            content = summary_pool_path.read_text(encoding='utf-8')
+        else:
+            content = ""
+        
+        # Split into independent information blocks
+        blocks = []
+        current_block = []
+        
+        for line in content.split('\n'):
+            if line.startswith('【') and '新信息】' in line:
+                if current_block:
+                    blocks.append('\n'.join(current_block))
+                current_block = [line]
+            else:
+                current_block.append(line)
+        
+        if current_block:
+            blocks.append('\n'.join(current_block))
+        
+        # Sort by time in reverse order (newest first)
+        blocks.sort(reverse=True)
+        
+        # Combine all blocks (newest first)
+        final_content = '\n'.join(blocks)
+        
         msg = MIMEMultipart()
         msg['From'] = email_config["smtp"]["user"]
         msg['To'] = email_config["target"]
-        msg['Subject'] = f"招生信息汇总 - {summarize_file.stem}"
+        msg['Subject'] = "中山大学招生信息推送"
 
-        body = MIMEText(content, 'plain', 'utf-8')
+        body = MIMEText(final_content, 'plain', 'utf-8')
         msg.attach(body)
 
         with smtplib.SMTP(email_config["smtp"]["server"], email_config["smtp"]["port"]) as server:
@@ -951,8 +990,7 @@ def process_diff_files():
             if not summarize_path:
                 continue
             
-            summarize_content = summarize_path.read_text(encoding="utf-8")
-            email_sent = push_to_email(summarize_path, summarize_content)
+            email_sent = push_to_email(SUMMARY_POOL_FILE)
             if email_sent:
                 mark_as_done(summarize_path)
             
@@ -1026,9 +1064,19 @@ def scheduled_push():
 
     Configuration is loaded from: /workspace/projects/workspace/skills/web-info-watcher/config/config.json
     """
+    global SUMMARY_POOL_FILE
+    
     # Load configuration
     config = load_config()
     monitoring_config = config["monitoring"]
+
+    # Create summary pool file for this monitoring session
+    summary_pool_filename = f"summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    summary_pool_path = SNAPSHOTS_DIR / summary_pool_filename
+    
+    # Initialize empty summary pool file
+    summary_pool_path.write_text("", encoding='utf-8')
+    SUMMARY_POOL_FILE = summary_pool_path
 
     # Load monitoring parameters from config
     start_time_str = monitoring_config["start_time"]
@@ -1130,6 +1178,10 @@ def scheduled_push():
             except KeyboardInterrupt:
                 log_message("❌ 用户中断等待")
                 return 1
+    
+    # Clean up summary pool file
+    if summary_pool_path.exists():
+        summary_pool_path.unlink()
     
     return 0
 
