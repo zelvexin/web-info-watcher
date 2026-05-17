@@ -23,17 +23,6 @@
       "change_count": 3
     },
     {
-      "url": "https://blog.csdn.net/2301_79112268",
-      "name": "CSDN_blog",
-      "chinese_name": "CSDN\u4e2a\u4eba\u535a\u5ba2",
-      "selector": null,
-      "added": "2026-04-24T08:20:31.247255+00:00",
-      "last_check": "2026-04-28T23:26:13.328354+00:00",
-      "last_change": "2026-04-28T23:26:13.328631+00:00",
-      "check_count": 90,
-      "change_count": 86
-    },
-    {
       "url": "https://cse.sysu.edu.cn/admission/summer_camp",
       "name": "SYSU_CS_summer_camp",
       "chinese_name": "\u4e2d\u5927\u8ba1\u9662\u590f\u4ee4\u8425",
